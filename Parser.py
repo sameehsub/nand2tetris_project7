@@ -54,8 +54,12 @@ class Parser:
         """
         # Your code goes here!
         # A good place to start is to read all the lines of the input:
-        # input_lines = input_file.read().splitlines()
-        pass
+        input_lines = input_file.read().splitlines()
+        input=[line.split("//",1)[0].strip().split() for line in input_lines]
+        input=[inp for inp in input if inp]
+        self.index=-1
+        self.input_array=input
+        return
 
     def has_more_commands(self) -> bool:
         """Are there more commands in the input?
@@ -63,8 +67,7 @@ class Parser:
         Returns:
             bool: True if there are more commands, False otherwise.
         """
-        # Your code goes here!
-        pass
+        return self.index + 1 < len(self.input_array)
 
     def advance(self) -> None:
         """Reads the next command from the input and makes it the current 
@@ -72,7 +75,8 @@ class Parser:
         there is no current command.
         """
         # Your code goes here!
-        pass
+        self.index +=1
+        return
 
     def command_type(self) -> str:
         """
@@ -84,6 +88,26 @@ class Parser:
             "C_RETURN", "C_CALL".
         """
         # Your code goes here!
+        if self.input_array[self.index][0] in ["add", "sub", "neg", "eq", "gt", "lt", "and", "or", "not", "shiftleft", "shiftright"]:
+            return "C_ARITHMETIC"
+        elif self.input_array[self.index][0]=="push":
+            return "C_PUSH"
+        elif self.input_array[self.index][0]=="pop":
+            return "C_POP"
+        elif self.input_array[self.index][0]=="label":
+            return "C_LABEL"
+        elif self.input_array[self.index][0]=="goto":
+            return "C_GOTO"
+        elif self.input_array[self.index][0]=="if-goto":
+            return "C_IF"
+        elif self.input_array[self.index][0]=="function":
+            return "C_FUNCTION"
+        elif self.input_array[self.index][0]=="return":
+            return "C_RETURN"
+        elif self.input_array[self.index][0]=="call":
+            return "C_CALL"
+        else:
+            raise ValueError("Invalid command type")
         pass
 
     def arg1(self) -> str:
@@ -94,7 +118,13 @@ class Parser:
             Should not be called if the current command is "C_RETURN".
         """
         # Your code goes here!
-        pass
+        if self.command_type()=="C_ARITHMETIC":
+            return self.input_array[self.index][0]
+        elif self.command_type() in ["C_PUSH", "C_POP", "C_LABEL", "C_GOTO", "C_IF", "C_FUNCTION", "C_CALL"]:
+            return self.input_array[self.index][1]
+        else:
+            raise ValueError("Invalid command type for arg1")
+        return 
 
     def arg2(self) -> int:
         """
@@ -104,4 +134,8 @@ class Parser:
             "C_FUNCTION" or "C_CALL".
         """
         # Your code goes here!
-        pass
+        if self.command_type() in ["C_PUSH", "C_POP", "C_FUNCTION", "C_CALL"]:
+            return int(self.input_array[self.index][2])
+        else:
+            raise ValueError("Invalid command type for arg2")
+        return 
