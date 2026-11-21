@@ -67,7 +67,116 @@ class CodeWriter:
         # be translated to the assembly symbol "Xxx.i". In the subsequent
         # assembly process, the Hack assembler will allocate these symbolic
         # variables to the RAM, starting at address 16.
-        pass
+        ACCESS_MAP = {
+            "local": "LCL",
+            "argument": "ARG",
+            "this": "THIS",
+            "that": "THAT",
+        }
+        
+        if command == "C_PUSH":
+            if segment in ACCESS_MAP:
+                symbol = ACCESS_MAP[segment]
+                self.output_stream.write(
+                    f"@{index}\n"
+                    f"D=A\n"
+                    f"@{symbol}\n"
+                    f"A=M+D\n"
+                    f"D=M\n"
+                    f"@SP\n"
+                    f"A=M\n"
+                    f"M=D\n"
+                    f"@SP\n"
+                    f"M=M+1\n"
+                )
+            elif segment == "constant":
+                self.output_stream.write(
+                            f"@{index}\n"
+                            f"D=A\n"
+                            f"@SP\n"
+                            f"A=M\n"
+                            f"M=D\n"
+                            f"@SP\n"
+                            f"M=M+1\n"
+                        ) 
+            elif segment == "temp":
+                self.output_stream.write(
+                    f"@{5 + index}\n"
+                    f"D=M\n"
+                    f"@SP\n"
+                    f"A=M\n"
+                    f"M=D\n"
+                    f"@SP\n"
+                    f"M=M+1\n"
+                )
+            elif segment == "pointer":
+                symbol = "THIS" if index == 0 else "THAT"
+                self.output_stream.write(
+                    f"@{symbol}\n"
+                    f"D=M\n"
+                    f"@SP\n"
+                    f"A=M\n"
+                    f"M=D\n"
+                    f"@SP\n"
+                    f"M=M+1\n"
+                )
+            elif segment == "static":
+                self.output_stream.write(
+                    f"@{self.filename}.{index}\n"
+                    f"D=M\n"
+                    f"@SP\n"
+                    f"A=M\n"
+                    f"M=D\n"
+                    f"@SP\n"
+                    f"M=M+1\n"
+                )
+
+        elif command == "C_POP":
+            if segment in ACCESS_MAP:
+                symbol = ACCESS_MAP[segment]
+                self.output_stream.write(
+                        f"@{index}\n"
+                        f"D=A\n"
+                        f"@{symbol}\n"
+                        f"D=M+D\n"
+                        f"@R13\n"
+                        f"M=D\n"
+                        f"@SP\n"
+                        f"M=M-1\n"
+                        f"A=M\n"
+                        f"D=M\n"
+                        f"@R13\n"
+                        f"A=M\n"
+                        f"M=D\n"
+                    )
+            elif segment == "temp":
+                self.output_stream.write(
+                    f"@SP\n"
+                    f"AM=M-1\n"
+                    f"D=M\n"
+                    f"@{5 + index}\n"
+                    f"M=D\n"
+                )
+            elif segment == "pointer":
+                symbol = "THIS" if index == 0 else "THAT"
+                self.output_stream.write(
+                    f"@SP\n"
+                    f"AM=M-1\n"
+                    f"D=M\n"
+                    f"@{symbol}\n"
+                    f"M=D\n"
+                )
+            elif segment == "static":
+                self.output_stream.write(
+                    f"@SP\n"
+                    f"AM=M-1\n"
+                    f"D=M\n"
+                    f"@{self.filename}.{index}\n"
+                    f"M=D\n"
+                )
+            
+
+
 
     def write_label(self, label: str) -> None:
         """Writes assembly code that affects the label command. 
