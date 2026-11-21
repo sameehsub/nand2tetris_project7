@@ -17,10 +17,9 @@ class CodeWriter:
         Args:
             output_stream (typing.TextIO): output stream.
         """
-        # Your code goes here!
-        # Note that you can write to output_stream like so:
-        # output_stream.write("Hello world! \n")
-        pass
+        self.output_stream = output_stream # Stores the file stream to write the generated .asm code to
+        self.filename = "" # Holds the current .vm file for generating static variable symbols like FileName.i
+        self.label_counter = 0  # A running counter used to generate unique jump lables for comparison commands(eq, gt, lt)
 
     def set_file_name(self, filename: str) -> None:
         """Informs the code writer that the translation of a new VM file is 
