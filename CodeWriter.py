@@ -8,22 +8,12 @@ Unported [License](https://creativecommons.org/licenses/by-nc-sa/3.0/).
 import typing
 import os
 
+from click import command
+
 
 from Parser import Parser
 
-dictionary = {
-    "add": "@SP\nAM=M-1\nD=M\nA=A-1\nM=M+D\n",
-    "sub": "@SP\nAM=M-1\nD=M\nA=A-1\nM=M-D\n",
-    "NEG": "@SP\nAM=M-1\nM=-M\n",
-    "not": "@SP\nAM=M-1\nM=!M\n",
-    "eq":  "@SP\nAM=M-1\nD=M\nA=A-1\nD=M-D\n@TRUE_{0}\nD;JEQ\n@SP\nA=M-1\nM=0\n(TRUE_{0})\n@SP\nA=M-1\nM=-1\n",
-    "gt":  "@SP\nAM=M-1\nD=M\nA=A-1\nD=M-D\n@TRUE_{0}\nD;JGT\n@SP\nA=M-1\nM=0\n(TRUE_{0})\n@SP\nA=M-1\nM=-1\n",
-    "lt":  "@SP\nAM=M-1\nD=M\nA=A-1\nD=M-D\n@TRUE_{0}\nD;JLT\n@SP\nA=M-1\nM=0\n(TRUE_{0})\n@SP\nA=M-1\nM=-1\n",
-    "and": "@SP\nAM=M-1\nD=M\nA=A-1\nM=M&D\n",
-    "or":  "@SP\nAM=M-1\nD=M\nA=A-1\nM=M|D\n",
-    "shiftleft": "@SP\nAM=M-1\nD=M\nA=A-1\nM=M<<D\n",
-    "shiftright": "@SP\nAM=M-1\nD=M\nA=A-1\nM=M>>D\n"
-}
+
 
 class CodeWriter:
     """Translates VM commands into Hack assembly code."""
@@ -71,10 +61,92 @@ class CodeWriter:
         Args:
             command (str): an arithmetic command.
         """
-        # Your code goes here!
+        n = self.comparison_counter
+
+        dictionary = {
+        "add": "@SP\nAM=M-1\nD=M\nA=A-1\nM=D+M\n",
+        "sub": "@SP\nAM=M-1\nD=M\nA=A-1\nM=M-D\n",
+        "neg": "@SP\nA=M-1\nM=-M\n",
+
+        "eq": (
+            "@SP\nAM=M-1\nD=M\nA=A-1\nD=M-D\n"  # D = x - y
+            f"@EQ_TRUE_{n}\nD;JEQ\n"
+            "@SP\nA=M-1\nM=0\n"
+            f"@EQ_END_{n}\n0;JMP\n"
+            f"(EQ_TRUE_{n})\n"
+            "@SP\nA=M-1\nM=-1\n"
+            f"(EQ_END_{n})\n"
+        ),
+
+        "gt": (
+            "@SP\nAM=M-1\nD=M\n@R13\nM=D\n"       # Save y in R13
+            "@SP\nA=M-1\nD=M\n"                    # D = x
+            f"@GT_X_NEG_{n}\nD;JLT\n"
+
+            # x >= 0. If y < 0, then x > y is true.
+            "@R13\nD=M\n"
+            f"@GT_TRUE_{n}\nD;JLT\n"
+            f"@GT_SAME_SIGN_{n}\n0;JMP\n"
+
+            # x < 0. If y >= 0, then x > y is false.
+            f"(GT_X_NEG_{n})\n"
+            "@R13\nD=M\n"
+            f"@GT_FALSE_{n}\nD;JGE\n"
+
+            # Same sign: subtract and test x - y > 0.
+            f"(GT_SAME_SIGN_{n})\n"
+            "@SP\nA=M-1\nD=M\n@R13\nD=D-M\n"
+            f"@GT_TRUE_{n}\nD;JGT\n"
+
+            f"(GT_FALSE_{n})\n"
+            "@SP\nA=M-1\nM=0\n"
+            f"@GT_END_{n}\n0;JMP\n"
+            f"(GT_TRUE_{n})\n"
+            "@SP\nA=M-1\nM=-1\n"
+            f"(GT_END_{n})\n"
+        ),
+
+        "lt": (
+            "@SP\nAM=M-1\nD=M\n@R13\nM=D\n"       # Save y in R13
+            "@SP\nA=M-1\nD=M\n"                    # D = x
+            f"@LT_X_NEG_{n}\nD;JLT\n"
+
+            # x >= 0. If y < 0, then x < y is false.
+            "@R13\nD=M\n"
+            f"@LT_FALSE_{n}\nD;JLT\n"
+            f"@LT_SAME_SIGN_{n}\n0;JMP\n"
+
+            # x < 0. If y >= 0, then x < y is true.
+            f"(LT_X_NEG_{n})\n"
+            "@R13\nD=M\n"
+            f"@LT_TRUE_{n}\nD;JGE\n"
+
+            # Same sign: subtract and test x - y < 0.
+            f"(LT_SAME_SIGN_{n})\n"
+            "@SP\nA=M-1\nD=M\n@R13\nD=D-M\n"
+            f"@LT_TRUE_{n}\nD;JLT\n"
+
+            f"(LT_FALSE_{n})\n"
+            "@SP\nA=M-1\nM=0\n"
+            f"@LT_END_{n}\n0;JMP\n"
+            f"(LT_TRUE_{n})\n"
+            "@SP\nA=M-1\nM=-1\n"
+            f"(LT_END_{n})\n"
+        ),
+
+        "and": "@SP\nAM=M-1\nD=M\nA=A-1\nM=D&M\n",
+        "or":  "@SP\nAM=M-1\nD=M\nA=A-1\nM=D|M\n",
+        "not": "@SP\nA=M-1\nM=!M\n",
+        "shiftleft":  "@SP\nA=M-1\nM=M<<\n",
+        "shiftright": "@SP\nA=M-1\nM=M>>\n",
+    }
+
         if command in dictionary:
-            pass
-        pass
+            self.output_stream.write(dictionary[command])
+            self.comparison_counter += 1
+        else:
+            raise ValueError(f"Invalid arithmetic command: {command}")
+        return    
 
     def write_push_pop(self, command: str, segment: str, index: int) -> None:
         """Writes assembly code that is the translation of the given 
