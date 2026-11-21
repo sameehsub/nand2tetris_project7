@@ -6,7 +6,24 @@ as allowed by the Creative Common Attribution-NonCommercial-ShareAlike 3.0
 Unported [License](https://creativecommons.org/licenses/by-nc-sa/3.0/).
 """
 import typing
+import os
 
+
+from Parser import Parser
+
+dictionary = {
+    "add": "@SP\nAM=M-1\nD=M\nA=A-1\nM=M+D\n",
+    "sub": "@SP\nAM=M-1\nD=M\nA=A-1\nM=M-D\n",
+    "NEG": "@SP\nAM=M-1\nM=-M\n",
+    "not": "@SP\nAM=M-1\nM=!M\n",
+    "eq":  "@SP\nAM=M-1\nD=M\nA=A-1\nD=M-D\n@TRUE_{0}\nD;JEQ\n@SP\nA=M-1\nM=0\n(TRUE_{0})\n@SP\nA=M-1\nM=-1\n",
+    "gt":  "@SP\nAM=M-1\nD=M\nA=A-1\nD=M-D\n@TRUE_{0}\nD;JGT\n@SP\nA=M-1\nM=0\n(TRUE_{0})\n@SP\nA=M-1\nM=-1\n",
+    "lt":  "@SP\nAM=M-1\nD=M\nA=A-1\nD=M-D\n@TRUE_{0}\nD;JLT\n@SP\nA=M-1\nM=0\n(TRUE_{0})\n@SP\nA=M-1\nM=-1\n",
+    "and": "@SP\nAM=M-1\nD=M\nA=A-1\nM=M&D\n",
+    "or":  "@SP\nAM=M-1\nD=M\nA=A-1\nM=M|D\n",
+    "shiftleft": "@SP\nAM=M-1\nD=M\nA=A-1\nM=M<<D\n",
+    "shiftright": "@SP\nAM=M-1\nD=M\nA=A-1\nM=M>>D\n"
+}
 
 class CodeWriter:
     """Translates VM commands into Hack assembly code."""
@@ -17,9 +34,13 @@ class CodeWriter:
         Args:
             output_stream (typing.TextIO): output stream.
         """
-        self.output_stream = output_stream # Stores the file stream to write the generated .asm code to
-        self.filename = "" # Holds the current .vm file for generating static variable symbols like FileName.i
-        self.label_counter = 0  # A running counter used to generate unique jump lables for comparison commands(eq, gt, lt)
+        # Your code goes here!
+        # Note that you can write to output_stream like so:
+        # output_stream.write("Hello world! \n")
+        self.output_stream = output_stream
+        self.filename = ""
+        self.comparison_counter = 0
+        pass
 
     def set_file_name(self, filename: str) -> None:
         """Informs the code writer that the translation of a new VM file is 
@@ -38,8 +59,8 @@ class CodeWriter:
         # to filenames and paths, you are advised to parse the filename in
         # the function "translate_file" in Main.py using python's os library,
         # For example, using code similar to:
-        # input_filename, input_extension = os.path.splitext(os.path.basename(input_file.name))
-        pass
+        self.input_filename, input_extension = os.path.splitext(os.path.basename(filename))
+        return
 
     def write_arithmetic(self, command: str) -> None:
         """Writes assembly code that is the translation of the given 
@@ -51,6 +72,8 @@ class CodeWriter:
             command (str): an arithmetic command.
         """
         # Your code goes here!
+        if command in dictionary:
+            pass
         pass
 
     def write_push_pop(self, command: str, segment: str, index: int) -> None:
